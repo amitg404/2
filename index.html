@@ -149,6 +149,7 @@
         </div>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
         // Global variables
         let apiKey, clientId, tmdbKey, accessToken;
@@ -157,8 +158,8 @@
         let currentPlayingItem = null;
         let nextEpisodeTimer = null;
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', init);
+        // Wait for page to load
+        window.addEventListener('load', init);
 
         function init() {
             loadCredentials();
@@ -220,11 +221,17 @@
         function initGapi() {
             gapi.load('client:auth2', async () => {
                 try {
+                    // Determine the redirect URI based on how the page is loaded
+                    const redirectUri = window.location.protocol === 'file:' 
+                        ? 'http://localhost' 
+                        : window.location.origin;
+
                     await gapi.client.init({
                         apiKey: apiKey,
                         clientId: clientId,
                         discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-                        scope: 'https://www.googleapis.com/auth/drive.readonly'
+                        scope: 'https://www.googleapis.com/auth/drive.readonly',
+                        redirect_uri: redirectUri
                     });
 
                     const authInstance = gapi.auth2.getAuthInstance();
@@ -236,8 +243,17 @@
                     await loadLibrary();
                 } catch (error) {
                     console.error('Authentication error details:', error);
-                    alert('Authentication failed. Please check:\n1. Your Client ID is correct\n2. You have enabled Google Drive API\n3. You have configured OAuth consent screen\n\nError: ' + (error.message || error.error || 'Unknown error'));
+                    let errorMsg = 'Authentication failed. Please check:\n\n';
+                    errorMsg += '1. Your Client ID is correct and ends with .apps.googleusercontent.com\n';
+                    errorMsg += '2. You have enabled Google Drive API in Google Cloud Console\n';
+                    errorMsg += '3. You have configured OAuth consent screen with your email as a test user\n';
+                    errorMsg += '4. Your OAuth redirect URI includes: ' + (window.location.protocol === 'file:' ? 'http://localhost' : window.location.origin) + '\n\n';
+                    errorMsg += 'Error details: ' + (error.details || error.message || error.error || JSON.stringify(error));
+                    
+                    alert(errorMsg);
                     document.getElementById('loadingScreen').classList.add('hidden');
+                    document.getElementById('setupModal').classList.remove('hidden');
+                    document.getElementById('mainApp').classList.add('hidden');
                 }
             });
         }
