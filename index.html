@@ -208,6 +208,16 @@
         });
 
         function authenticate() {
+            // Wait for gapi to be available
+            const checkGapi = setInterval(() => {
+                if (typeof gapi !== 'undefined') {
+                    clearInterval(checkGapi);
+                    initGapi();
+                }
+            }, 100);
+        }
+
+        function initGapi() {
             gapi.load('client:auth2', async () => {
                 try {
                     await gapi.client.init({
@@ -225,7 +235,9 @@
                     accessToken = gapi.auth.getToken().access_token;
                     await loadLibrary();
                 } catch (error) {
-                    alert('Authentication failed: ' + error.message);
+                    console.error('Authentication error details:', error);
+                    alert('Authentication failed. Please check:\n1. Your Client ID is correct\n2. You have enabled Google Drive API\n3. You have configured OAuth consent screen\n\nError: ' + (error.message || error.error || 'Unknown error'));
+                    document.getElementById('loadingScreen').classList.add('hidden');
                 }
             });
         }
@@ -657,7 +669,7 @@
             if (continueWatching.length > 10) {
                 continueWatching = continueWatching.slice(0, 10);
             }
-                
+            
             localStorage.setItem('continue_watching', JSON.stringify(continueWatching));
             renderContinueWatching();
         }
